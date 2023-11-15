@@ -50,15 +50,14 @@ async def post_wechat(signature: Union[str, None] = None,
     try:
         check_signature(wechat_token, signature, timestamp, nonce)
         msg = parse_message(body)
-        print("Human", msg)
+        print("User:", msg.content)
         reply_content = ''
         try:
-            ai = await asyncio.wait_for(ainvoke_and_print(msg.content), timeout=5)
+            ai = await asyncio.wait_for(asyncio.shield(ainvoke_and_print(msg.content)), timeout=4.9)
             reply_content = ai.content
         except TimeoutError:
             reply_content = "请求超时"
         reply = create_reply(reply_content, message=msg)
-        print("AI", reply)
         xml = reply.render()
         return Response(xml)
     except InvalidSignatureException:
@@ -67,6 +66,5 @@ async def post_wechat(signature: Union[str, None] = None,
 
 async def ainvoke_and_print(msg):
     reply = await llm.ainvoke(msg)
-    print('reply', reply)
+    print('AI:', reply.content)
     return reply
-
