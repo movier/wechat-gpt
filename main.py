@@ -4,7 +4,7 @@ from asyncio.exceptions import TimeoutError
 from typing import Union
 from functools import lru_cache
 
-from fastapi import FastAPI, Body, Response
+from fastapi import FastAPI, Body, Response, Depends
 
 from wechatpy import parse_message
 from wechatpy.utils import check_signature
@@ -14,6 +14,23 @@ from wechatpy.replies import create_reply
 from langchain.chat_models import ChatOpenAI
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from sqlalchemy.orm import Session
+
+import crud
+import models
+import schemas
+from database import SessionLocal, engine
+
+models.Base.metadata.create_all(bind=engine)
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 class Settings(BaseSettings):
     openai_api_key: str
@@ -46,11 +63,19 @@ def read_wechat(signature: Union[str, None] = None,
 async def post_wechat(signature: Union[str, None] = None,
                 timestamp: Union[str, None] = None,
                 nonce: Union[str, None] = None,
-                body: str = Body(...)):
+                body: str = Body(...),
+                db: Session = Depends(get_db)):
     try:
         check_signature(wechat_token, signature, timestamp, nonce)
         msg = parse_message(body)
-        print("User:", msg.content)
+        message = schemas.MessageCreate(
+            id=msg.id,
+            source=msg.source,
+            target=msg.target,
+            create_time=msg.create_time,
+            content=msg.content
+        )
+        crud.create_message(db, message)
         reply_content = ''
         try:
             ai = await asyncio.wait_for(asyncio.shield(ainvoke_and_print(msg.content)), timeout=4.9)
@@ -66,5 +91,4 @@ async def post_wechat(signature: Union[str, None] = None,
 
 async def ainvoke_and_print(msg):
     reply = await llm.ainvoke(msg)
-    print('AI:', reply.content)
     return reply
