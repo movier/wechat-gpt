@@ -4,9 +4,8 @@ import models
 import schemas
 
 
-# def get_user(db: Session, user_id: int):
-#     return db.query(models.User).filter(models.User.id == user_id).first()
-
+def get_message(db: Session, msg_id: int):
+    return db.query(models.Message).filter(models.Message.id == msg_id).first()
 
 # def get_user_by_email(db: Session, email: str):
 #     return db.query(models.User).filter(models.User.email == email).first()
@@ -23,6 +22,17 @@ def create_message(db: Session, message: schemas.MessageCreate):
     db.refresh(db_msg)
     return db_msg
 
+def update_message(db: Session, model_msg: models.Message):
+    db.add(model_msg)
+    db.commit()
+    db.refresh(model_msg)
+    return model_msg
+
+def get_or_create_message(db: Session, msg: schemas.MessageCreate):
+    message = get_message(db, msg.id)
+    if message:
+        return message
+    return create_message(db, msg)
 
 # def get_items(db: Session, skip: int = 0, limit: int = 100):
 #     return db.query(models.Item).offset(skip).limit(limit).all()

@@ -67,28 +67,33 @@ async def post_wechat(signature: Union[str, None] = None,
                 db: Session = Depends(get_db)):
     try:
         check_signature(wechat_token, signature, timestamp, nonce)
-        msg = parse_message(body)
-        message = schemas.MessageCreate(
-            id=msg.id,
-            source=msg.source,
-            target=msg.target,
-            create_time=msg.create_time,
-            content=msg.content
+        wechat_msg = parse_message(body)
+        msg = schemas.MessageCreate(
+            id=wechat_msg.id,
+            source=wechat_msg.source,
+            target=wechat_msg.target,
+            create_time=wechat_msg.create_time,
+            content=wechat_msg.content
         )
-        crud.create_message(db, message)
+        msg = crud.get_or_create_message(db, msg)
         reply_content = ''
         try:
-            ai = await asyncio.wait_for(asyncio.shield(ainvoke_and_print(msg.content)), timeout=4.9)
+            ai = await asyncio.wait_for(asyncio.shield(ainvoke_and_print(db, msg)), timeout=4.8)
             reply_content = ai.content
         except TimeoutError:
             reply_content = "请求超时"
-        reply = create_reply(reply_content, message=msg)
+        reply = create_reply(reply_content, message=wechat_msg)
         xml = reply.render()
         return Response(xml)
     except InvalidSignatureException:
         # 处理异常情况或忽略
         return {"detail": "Not Found"}
 
-async def ainvoke_and_print(msg):
-    reply = await llm.ainvoke(msg)
+async def ainvoke_and_print(db, msg):
+    print("Human:", msg.content)
+    reply = await llm.ainvoke(msg.content)
+    print("AI:", reply.content)
+    msg.reply = reply.content
+    msg.is_fulfilled = True
+    crud.update_message(db, msg)
     return reply
