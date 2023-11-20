@@ -4,7 +4,7 @@ from asyncio.exceptions import TimeoutError
 from typing import Union
 from functools import lru_cache
 
-from fastapi import FastAPI, Body, Response, Depends
+from fastapi import FastAPI, Body, Response, Depends, BackgroundTasks
 
 from wechatpy import parse_message
 from wechatpy.utils import check_signature
@@ -78,20 +78,16 @@ async def post_wechat(signature: Union[str, None] = None,
         )
         unhandled_msg = crud.get_unhandled_message(db, msg)
         reply_content = ''
-        if unhandled_msg:
-            await asyncio.sleep(4.8)
-            reply_content = check_unhandled_message(db, msg)
-            if reply_content == None:
-                reply_content = "请稍后再试"
-        else:
-            msg = crud.get_or_create_message(db, msg)
-            try:
-                ai = await asyncio.wait_for(asyncio.shield(ainvoke_and_print(db, msg)), timeout=4.8)
-                reply_content = ai.reply
-                msg.is_fulfilled = True
-                crud.update_message(db, msg)
-            except TimeoutError:
-                reply_content = "请求超时"
+        
+        if not unhandled_msg:
+            msg_model = crud.create_message(db, msg)
+            asyncio.create_task(ainvoke_and_update(db, msg_model))
+        
+        await asyncio.sleep(4.8)
+        reply_content = check_unhandled_message(db, msg)
+        if reply_content == None:
+            reply_content = "服务器繁忙，请稍后再试"
+
         reply = create_reply(reply_content, message=wechat_msg)
         xml = reply.render()
         return Response(xml)
@@ -99,12 +95,11 @@ async def post_wechat(signature: Union[str, None] = None,
         # 处理异常情况或忽略
         return {"detail": "Not Found"}
 
-async def ainvoke_and_print(db, msg):
-    reply = await llm.ainvoke(msg.content)
-    print("AI:", reply.content)
-    msg.reply = reply.content
-    crud.update_message(db, msg)
-    return msg
+async def ainvoke_and_update(db, msg_model):
+    ai_message = await llm.ainvoke(msg_model.content)
+    print("AI:", ai_message.content)
+    msg_model.reply = ai_message.content
+    crud.update_message(db, msg_model)
 
 def check_unhandled_message(db, msg):
     unhandled_msg = crud.get_unhandled_message(db, msg)
