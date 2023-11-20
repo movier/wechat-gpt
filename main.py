@@ -75,13 +75,24 @@ async def post_wechat(signature: Union[str, None] = None,
             create_time=wechat_msg.create_time,
             content=wechat_msg.content
         )
-        msg = crud.get_or_create_message(db, msg)
+        unhandled_msg = crud.get_unhandled_message(db, msg)
         reply_content = ''
-        try:
-            ai = await asyncio.wait_for(asyncio.shield(ainvoke_and_print(db, msg)), timeout=4.8)
-            reply_content = ai.content
-        except TimeoutError:
-            reply_content = "请求超时"
+        if unhandled_msg:
+            if unhandled_msg.reply:
+                reply_content = unhandled_msg.reply
+                unhandled_msg.is_fulfilled = True
+                crud.update_message(db, unhandled_msg)
+            else:
+                reply_content = "请稍后再试"
+        else:
+            msg = crud.get_or_create_message(db, msg)
+            try:
+                ai = await asyncio.wait_for(asyncio.shield(ainvoke_and_print(db, msg)), timeout=4.8)
+                reply_content = ai.reply
+                msg.is_fulfilled = True
+                crud.update_message(db, msg)
+            except TimeoutError:
+                reply_content = "请求超时"
         reply = create_reply(reply_content, message=wechat_msg)
         xml = reply.render()
         return Response(xml)
@@ -94,6 +105,5 @@ async def ainvoke_and_print(db, msg):
     reply = await llm.ainvoke(msg.content)
     print("AI:", reply.content)
     msg.reply = reply.content
-    msg.is_fulfilled = True
     crud.update_message(db, msg)
-    return reply
+    return msg
