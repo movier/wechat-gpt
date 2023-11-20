@@ -68,6 +68,7 @@ async def post_wechat(signature: Union[str, None] = None,
     try:
         check_signature(wechat_token, signature, timestamp, nonce)
         wechat_msg = parse_message(body)
+        print("Human:", wechat_msg.content)
         msg = schemas.MessageCreate(
             id=wechat_msg.id,
             source=wechat_msg.source,
@@ -78,11 +79,9 @@ async def post_wechat(signature: Union[str, None] = None,
         unhandled_msg = crud.get_unhandled_message(db, msg)
         reply_content = ''
         if unhandled_msg:
-            if unhandled_msg.reply:
-                reply_content = unhandled_msg.reply
-                unhandled_msg.is_fulfilled = True
-                crud.update_message(db, unhandled_msg)
-            else:
+            await asyncio.sleep(4.8)
+            reply_content = check_unhandled_message(db, msg)
+            if reply_content == None:
                 reply_content = "请稍后再试"
         else:
             msg = crud.get_or_create_message(db, msg)
@@ -101,9 +100,17 @@ async def post_wechat(signature: Union[str, None] = None,
         return {"detail": "Not Found"}
 
 async def ainvoke_and_print(db, msg):
-    print("Human:", msg.content)
     reply = await llm.ainvoke(msg.content)
     print("AI:", reply.content)
     msg.reply = reply.content
     crud.update_message(db, msg)
     return msg
+
+def check_unhandled_message(db, msg):
+    unhandled_msg = crud.get_unhandled_message(db, msg)
+    if unhandled_msg.reply:
+        unhandled_msg.is_fulfilled = True
+        crud.update_message(db, unhandled_msg)
+        return unhandled_msg.reply
+    else:
+        return None        
