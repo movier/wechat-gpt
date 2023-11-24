@@ -4,6 +4,9 @@ import models
 import schemas
 
 
+def get_all_messages(db: Session):
+    return db.query(models.Message).order_by(models.Message.create_time.asc()).all()
+
 def get_message(db: Session, msg_id: int):
     return db.query(models.Message).filter(models.Message.id == msg_id).first()
 

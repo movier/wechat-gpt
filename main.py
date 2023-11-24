@@ -12,6 +12,7 @@ from wechatpy.exceptions import InvalidSignatureException
 from wechatpy.replies import create_reply
 
 from langchain.chat_models import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -96,8 +97,18 @@ async def post_wechat(signature: Union[str, None] = None,
         return {"detail": "Not Found"}
 
 async def ainvoke_and_update(db, msg_model):
-    ai_message = await llm.ainvoke(msg_model.content)
-    print("AI:", ai_message.content)
+    all_messages = crud.get_all_messages(db)
+    from_messages = [("system", "你的名字叫智能明。")]
+    for message in all_messages:
+        if message.content:
+            from_messages.append(("human", message.content))
+        if message.reply:
+            from_messages.append(("ai", message.reply))
+    chat_template = ChatPromptTemplate.from_messages(from_messages)
+    messages = chat_template.format_messages()
+    print("Messages:", messages)
+    ai_message = await llm.ainvoke(messages)
+    print("AI:", ai_message)
     msg_model.reply = ai_message.content
     crud.update_message(db, msg_model)
 
