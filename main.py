@@ -98,7 +98,7 @@ async def post_wechat(signature: Union[str, None] = None,
 
 async def ainvoke_and_update(db, msg_model):
     all_messages = crud.get_all_messages(db)
-    from_messages = [("system", "你的名字叫智能明。")]
+    from_messages = [("system", "You are a helpful assistant.")]
     for message in all_messages:
         if message.content:
             from_messages.append(("human", message.content))
