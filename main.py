@@ -6,10 +6,9 @@ from functools import lru_cache
 
 from fastapi import FastAPI, Body, Response, Depends, BackgroundTasks
 
-from wechatpy import parse_message
+from wechatpy import parse_message, WeChatClient
 from wechatpy.utils import check_signature
 from wechatpy.exceptions import InvalidSignatureException
-from wechatpy.replies import create_reply
 
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
@@ -36,6 +35,8 @@ def get_db():
 class Settings(BaseSettings):
     openai_api_key: str
     wechat_token: str
+    wechat_app_id: str
+    wechat_app_secret: str
     model_config = SettingsConfigDict(env_file=".env")
 
 @lru_cache
@@ -47,6 +48,9 @@ settings = get_settings()
 app = FastAPI()
 llm = ChatOpenAI(openai_api_key=settings.openai_api_key)
 wechat_token = settings.wechat_token
+wechat_app_id = settings.wechat_app_id
+wechat_app_secret = settings.wechat_app_secret
+wechat_client = WeChatClient(wechat_app_id, wechat_app_secret)
 
 @app.get("/wechat/")
 def read_wechat(signature: Union[str, None] = None,
@@ -77,21 +81,9 @@ async def post_wechat(signature: Union[str, None] = None,
             create_time=wechat_msg.create_time,
             content=wechat_msg.content
         )
-        unhandled_msg = crud.get_unhandled_message(db, msg)
-        reply_content = ''
-        
-        if not unhandled_msg:
-            msg_model = crud.create_message(db, msg)
-            asyncio.create_task(ainvoke_and_update(db, msg_model))
-        
-        await asyncio.sleep(4.8)
-        reply_content = check_unhandled_message(db, msg)
-        if reply_content == None:
-            reply_content = "服务器繁忙，请稍后再试"
-
-        reply = create_reply(reply_content, message=wechat_msg)
-        xml = reply.render()
-        return Response(xml)
+        msg_model = crud.create_message(db, msg)
+        asyncio.create_task(ainvoke_and_update(db, msg_model))
+        return Response("success")
     except InvalidSignatureException:
         # 处理异常情况或忽略
         return {"detail": "Not Found"}
@@ -111,12 +103,7 @@ async def ainvoke_and_update(db, msg_model):
     print("AI:", ai_message)
     msg_model.reply = ai_message.content
     crud.update_message(db, msg_model)
-
-def check_unhandled_message(db, msg):
-    unhandled_msg = crud.get_unhandled_message(db, msg)
-    if unhandled_msg.reply:
-        unhandled_msg.is_fulfilled = True
-        crud.update_message(db, unhandled_msg)
-        return unhandled_msg.reply
-    else:
-        return None        
+    res = wechat_client.message.send_text(msg_model.source, ai_message.content)
+    print("res", res)
+    msg_model.is_fulfilled = True
+    crud.update_message(db, msg_model)      
