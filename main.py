@@ -1,10 +1,9 @@
 import asyncio
-from asyncio.exceptions import TimeoutError
 
 from typing import Union
 from functools import lru_cache
 
-from fastapi import FastAPI, Body, Response, Depends, BackgroundTasks
+from fastapi import FastAPI, Body, Response, Depends
 
 from wechatpy import parse_message, WeChatClient
 from wechatpy.utils import check_signature
