@@ -130,7 +130,7 @@ async def ainvoke_and_update(db, msg_model):
         msg_model.is_fulfilled = True
         crud.update_message(db, msg_model)
     else:
-        res = wechat_client.message.send_text(msg_model.source, "这个话题我暂时无法与您讨论，请联系系统管理员。")
+        res = wechat_client.message.send_text(msg_model.source, "很抱歉，我暂时无法与您讨论这个话题。如有需要，请联系系统管理员。")
         print("res", res)
 
 def tencent_cloud_text_auditing_service(text):
