@@ -4,14 +4,17 @@ import models
 import schemas
 
 
+def get_latest_message_from_the_user(db: Session, msg: schemas.MessageCreate):
+    return db.query(models.Message).filter(models.Message.source == msg.source).filter(models.Message.target == msg.target).order_by(models.Message.create_time.desc()).first()
+
 def get_all_messages(db: Session):
     return db.query(models.Message).order_by(models.Message.create_time.asc()).all()
 
-def get_message(db: Session, msg_id: int):
-    return db.query(models.Message).filter(models.Message.id == msg_id).first()
+# def get_message(db: Session, msg_id: int):
+#     return db.query(models.Message).filter(models.Message.id == msg_id).first()
 
-def get_unhandled_message(db: Session, msg: schemas.MessageCreate):
-    return db.query(models.Message).filter(models.Message.source == msg.source).filter(models.Message.content == msg.content).filter(models.Message.is_fulfilled == False).first()
+# def get_unhandled_message(db: Session, msg: schemas.MessageCreate):
+#     return db.query(models.Message).filter(models.Message.source == msg.source).filter(models.Message.content == msg.content).filter(models.Message.is_fulfilled == False).first()
 
 # def get_user_by_email(db: Session, email: str):
 #     return db.query(models.User).filter(models.User.email == email).first()
@@ -22,6 +25,11 @@ def get_unhandled_message(db: Session, msg: schemas.MessageCreate):
 
 
 def create_message(db: Session, message: schemas.MessageCreate):
+    latest_msg = get_latest_message_from_the_user(db, message)
+    if latest_msg:
+        lastest_msg_datetime = latest_msg.create_time
+        time_elapsed = message.create_time - lastest_msg_datetime
+        message.time_elapsed = time_elapsed
     db_msg = models.Message(**message.dict())
     db.add(db_msg)
     db.commit()
@@ -34,11 +42,11 @@ def update_message(db: Session, model_msg: models.Message):
     db.refresh(model_msg)
     return model_msg
 
-def get_or_create_message(db: Session, msg: schemas.MessageCreate):
-    message = get_message(db, msg.id)
-    if message:
-        return message
-    return create_message(db, msg)
+# def get_or_create_message(db: Session, msg: schemas.MessageCreate):
+#     message = get_message(db, msg.id)
+#     if message:
+#         return message
+#     return create_message(db, msg)
 
 # def get_unhandled_or_create_new_message(db: Session, msg: schemas.MessageCreate):
 #     message = get_unhandled_message(db, msg)

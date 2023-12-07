@@ -95,10 +95,10 @@ async def post_wechat(signature: Union[str, None] = None,
         wechat_msg = parse_message(body)
         print("Human:", wechat_msg.content)
         msg = schemas.MessageCreate(
-            id=wechat_msg.id,
+            msg_id=wechat_msg.id,
             source=wechat_msg.source,
             target=wechat_msg.target,
-            create_time=wechat_msg.create_time,
+            create_time=int(wechat_msg.create_time.timestamp()),
             content=wechat_msg.content
         )
         msg_model = crud.create_message(db, msg)

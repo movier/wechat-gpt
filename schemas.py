@@ -5,15 +5,15 @@ from pydantic import BaseModel
 
 
 class MessageBase(BaseModel):
-    id: int
+    id: int = None
+    is_fulfilled: bool = False
+    content: str
+    reply: Union[str, None] = None
+    msg_id: int
     source: str
     target: str
-    content: str
-    create_time: datetime
-    reply: Union[str, None] = None
-    req_times: int = 1
-    is_fulfilled: bool = False
-
+    create_time: int
+    time_elapsed: int = None
 
 class MessageCreate(MessageBase):
     pass
