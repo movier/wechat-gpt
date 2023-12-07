@@ -7,8 +7,11 @@ import schemas
 def get_latest_message_from_the_user(db: Session, msg: schemas.MessageCreate):
     return db.query(models.Message).filter(models.Message.source == msg.source).filter(models.Message.target == msg.target).order_by(models.Message.create_time.desc()).first()
 
-def get_all_messages(db: Session):
-    return db.query(models.Message).order_by(models.Message.create_time.asc()).all()
+def get_all_messages(db: Session, msg: models.Message):
+    conversation_start_msg = db.query(models.Message).filter(models.Message.source == msg.source).filter(models.Message.target == msg.target).filter(models.Message.time_elapsed > 300).order_by(models.Message.create_time.desc()).first()
+    if conversation_start_msg:
+        return db.query(models.Message).filter(models.Message.source == msg.source).filter(models.Message.target == msg.target).filter(models.Message.create_time >= conversation_start_msg.create_time).order_by(models.Message.create_time.asc()).all()
+    return db.query(models.Message).filter(models.Message.source == msg.source).filter(models.Message.target == msg.target).order_by(models.Message.create_time.asc()).all()
 
 # def get_message(db: Session, msg_id: int):
 #     return db.query(models.Message).filter(models.Message.id == msg_id).first()
