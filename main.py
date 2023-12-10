@@ -11,6 +11,7 @@ from wechatpy.exceptions import InvalidSignatureException
 
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
+from langchain.globals import set_debug
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -28,6 +29,8 @@ models.Base.metadata.create_all(bind=engine)
 
 # 正常情况日志级别使用 INFO，需要定位时可以修改为 DEBUG，此时 SDK 会打印和服务端的通信信息
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+
+# set_debug(True)
 
 # Dependency
 def get_db():
@@ -58,7 +61,7 @@ def get_settings():
 settings = get_settings()
 
 app = FastAPI()
-llm = ChatOpenAI(openai_api_key=settings.openai_api_key)
+llm = ChatOpenAI(openai_api_key=settings.openai_api_key, model_name="gpt-4-1106-preview")
 
 wechat_token = settings.wechat_token
 wechat_app_id = settings.wechat_app_id
