@@ -116,9 +116,9 @@ async def ainvoke_and_update(db, msg_model):
     from_messages = [("system", "You are a helpful assistant.")]
     for message in all_messages:
         if message.content:
-            from_messages.append(("human", message.content))
+            from_messages.append(("human", message.content.replace('{', '{{').replace('}', '}}')))
         if message.reply:
-            from_messages.append(("ai", message.reply))
+            from_messages.append(("ai", message.reply.replace('{', '{{').replace('}', '}}')))
     chat_template = ChatPromptTemplate.from_messages(from_messages)
     messages = chat_template.format_messages()
     print("Messages:", messages)
