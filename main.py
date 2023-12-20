@@ -7,7 +7,7 @@ from fastapi import FastAPI, Body, Response, Depends
 
 from wechatpy import parse_message, WeChatClient
 from wechatpy.utils import check_signature
-from wechatpy.exceptions import InvalidSignatureException
+from wechatpy.exceptions import InvalidSignatureException, WeChatClientException
 
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
@@ -128,13 +128,15 @@ async def ainvoke_and_update(db, msg_model):
     crud.update_message(db, msg_model)
 
     if (tencent_cloud_text_auditing_service(ai_message.content)):
-        res = wechat_client.message.send_text(msg_model.source, ai_message.content)
-        print("res", res)
-        msg_model.is_fulfilled = True
-        crud.update_message(db, msg_model)
+        try:
+            wechat_client.message.send_text(msg_model.source, ai_message.content)
+            msg_model.is_fulfilled = True
+            crud.update_message(db, msg_model)
+        except WeChatClientException as e:
+            print(e)
+            wechat_client.message.send_text(msg_model.source, "很抱歉，我在回复消息的时候遇到了点儿问题。如有需要，请联系系统管理员。")
     else:
-        res = wechat_client.message.send_text(msg_model.source, "很抱歉，我暂时无法与您讨论这个话题。如有需要，请联系系统管理员。")
-        print("res", res)
+        wechat_client.message.send_text(msg_model.source, "很抱歉，我暂时无法与您讨论这个话题。如有需要，请联系系统管理员。")
 
 def tencent_cloud_text_auditing_service(text):
     response = tencent_cloud_client.ci_auditing_text_submit(
