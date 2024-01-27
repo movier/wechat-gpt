@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build -t movier/wechat-ai .
+docker build -t movier/wechat-gpt .
