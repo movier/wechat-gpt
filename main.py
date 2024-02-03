@@ -9,9 +9,7 @@ from wechatpy import parse_message, WeChatClient
 from wechatpy.utils import check_signature
 from wechatpy.exceptions import InvalidSignatureException, WeChatClientException
 
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.globals import set_debug
+from openai import AsyncOpenAI
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -61,7 +59,7 @@ def get_settings():
 settings = get_settings()
 
 app = FastAPI()
-llm = ChatOpenAI(openai_api_key=settings.openai_api_key, model_name="gpt-4-1106-preview")
+llm = AsyncOpenAI(api_key=settings.openai_api_key)
 
 wechat_token = settings.wechat_token
 wechat_app_id = settings.wechat_app_id
@@ -113,23 +111,25 @@ async def post_wechat(signature: Union[str, None] = None,
 
 async def ainvoke_and_update(db, msg_model):
     all_messages = crud.get_all_messages(db, msg_model)
-    from_messages = [("system", "You are a helpful assistant.")]
+    from_messages = []
     for message in all_messages:
         if message.content:
-            from_messages.append(("human", message.content.replace('{', '{{').replace('}', '}}')))
+            from_messages.append({"role": "user", "content": message.content.replace('{', '{{').replace('}', '}}')})
         if message.reply:
-            from_messages.append(("ai", message.reply.replace('{', '{{').replace('}', '}}')))
-    chat_template = ChatPromptTemplate.from_messages(from_messages)
-    messages = chat_template.format_messages()
-    print("Messages:", messages)
-    ai_message = await llm.ainvoke(messages)
-    print("AI:", ai_message)
-    msg_model.reply = ai_message.content
+            from_messages.append({"role": "assistant", "content": message.reply.replace('{', '{{').replace('}', '}}')})
+    messages = from_messages
+    ai_message = await llm.chat.completions.create(
+        messages=messages,
+        model="gpt-4-turbo-preview",
+    )
+    print(ai_message)
+    ai_message_content = ai_message.choices[0].message.content
+    msg_model.reply = ai_message_content
     crud.update_message(db, msg_model)
 
-    if (tencent_cloud_text_auditing_service(ai_message.content)):
+    if (tencent_cloud_text_auditing_service(ai_message_content)):
         try:
-            wechat_client.message.send_text(msg_model.source, ai_message.content)
+            wechat_client.message.send_text(msg_model.source, ai_message_content)
             msg_model.is_fulfilled = True
             crud.update_message(db, msg_model)
         except WeChatClientException as e:
