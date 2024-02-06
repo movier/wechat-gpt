@@ -118,6 +118,7 @@ async def ainvoke_and_update(db, msg_model):
         if message.reply:
             from_messages.append({"role": "assistant", "content": message.reply.replace('{', '{{').replace('}', '}}')})
     messages = from_messages
+    print(messages)
     ai_message = await llm.chat.completions.create(
         messages=messages,
         model="gpt-4-turbo-preview",
