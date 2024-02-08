@@ -1,4 +1,4 @@
-import asyncio, sys, logging
+import asyncio, sys, logging, requests
 
 from typing import Union
 from functools import lru_cache
@@ -8,8 +8,6 @@ from fastapi import FastAPI, Body, Response, Depends
 from wechatpy import parse_message, WeChatClient
 from wechatpy.utils import check_signature
 from wechatpy.exceptions import InvalidSignatureException, WeChatClientException
-
-from openai import AsyncOpenAI
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -59,7 +57,6 @@ def get_settings():
 settings = get_settings()
 
 app = FastAPI()
-llm = AsyncOpenAI(api_key=settings.openai_api_key)
 
 wechat_token = settings.wechat_token
 wechat_app_id = settings.wechat_app_id
@@ -119,12 +116,9 @@ async def ainvoke_and_update(db, msg_model):
             from_messages.append({"role": "assistant", "content": message.reply.replace('{', '{{').replace('}', '}}')})
     messages = from_messages
     print(messages)
-    ai_message = await llm.chat.completions.create(
-        messages=messages,
-        model="gpt-4-turbo-preview",
-    )
+    ai_message = await asyncio.to_thread(request_openai, messages)
     print(ai_message)
-    ai_message_content = ai_message.choices[0].message.content
+    ai_message_content = ai_message['choices'][0]['message']['content']
     msg_model.reply = ai_message_content
     crud.update_message(db, msg_model)
 
@@ -138,6 +132,18 @@ async def ainvoke_and_update(db, msg_model):
             wechat_client.message.send_text(msg_model.source, "很抱歉，我在回复消息的时候遇到了点儿问题。如有需要，请联系系统管理员。")
     else:
         wechat_client.message.send_text(msg_model.source, "很抱歉，我暂时无法与您讨论这个话题。如有需要，请联系系统管理员。")
+
+def request_openai(messages):
+    headers = {
+        'Authorization': f'Bearer {settings.openai_api_key}',
+        'Content-Type': 'application/json',
+    }
+    data = {
+        'model': 'gpt-4-turbo-preview',
+        'messages': messages,
+    }
+    response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=data)
+    return response.json()
 
 def tencent_cloud_text_auditing_service(text):
     response = tencent_cloud_client.ci_auditing_text_submit(
