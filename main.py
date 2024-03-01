@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     wechat_app_id: str
     wechat_app_secret: str
 
+    enable_tencent_cloud_tas: bool
     tencent_cloud_secret_id: str
     tencent_cloud_secret_key: str
     tencent_cloud_bucket_region: str
@@ -63,6 +64,7 @@ wechat_app_id = settings.wechat_app_id
 wechat_app_secret = settings.wechat_app_secret
 wechat_client = WeChatClient(wechat_app_id, wechat_app_secret)
 
+enable_tencent_cloud_tas = settings.enable_tencent_cloud_tas
 tencent_cloud_secret_id = settings.tencent_cloud_secret_id
 tencent_cloud_secret_key = settings.tencent_cloud_secret_key
 tencent_cloud_bucket_region = settings.tencent_cloud_bucket_region
@@ -122,7 +124,9 @@ async def ainvoke_and_update(db, msg_model):
     msg_model.reply = ai_message_content
     crud.update_message(db, msg_model)
 
-    if (tencent_cloud_text_auditing_service(ai_message_content)):
+    if enable_tencent_cloud_tas and not tencent_cloud_text_auditing_service(ai_message_content):
+        wechat_client.message.send_text(msg_model.source, "很抱歉，我暂时无法与您讨论这个话题。如有需要，请联系系统管理员。")
+    else:
         try:
             wechat_client.message.send_text(msg_model.source, ai_message_content)
             msg_model.is_fulfilled = True
@@ -130,8 +134,6 @@ async def ainvoke_and_update(db, msg_model):
         except WeChatClientException as e:
             print(e)
             wechat_client.message.send_text(msg_model.source, "很抱歉，我在回复消息的时候遇到了点儿问题。如有需要，请联系系统管理员。")
-    else:
-        wechat_client.message.send_text(msg_model.source, "很抱歉，我暂时无法与您讨论这个话题。如有需要，请联系系统管理员。")
 
 def request_openai(messages):
     headers = {
