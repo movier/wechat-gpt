@@ -65,12 +65,13 @@ wechat_app_secret = settings.wechat_app_secret
 wechat_client = WeChatClient(wechat_app_id, wechat_app_secret)
 
 enable_tencent_cloud_tas = settings.enable_tencent_cloud_tas
-tencent_cloud_secret_id = settings.tencent_cloud_secret_id
-tencent_cloud_secret_key = settings.tencent_cloud_secret_key
-tencent_cloud_bucket_region = settings.tencent_cloud_bucket_region
-tencent_cloud_bucket_name = settings.tencent_cloud_bucket_name
-tencent_cloud_config = CosConfig(Region=tencent_cloud_bucket_region, SecretId=tencent_cloud_secret_id, SecretKey=tencent_cloud_secret_key)
-tencent_cloud_client = CosS3Client(tencent_cloud_config)
+if enable_tencent_cloud_tas:
+    tencent_cloud_secret_id = settings.tencent_cloud_secret_id
+    tencent_cloud_secret_key = settings.tencent_cloud_secret_key
+    tencent_cloud_bucket_region = settings.tencent_cloud_bucket_region
+    tencent_cloud_bucket_name = settings.tencent_cloud_bucket_name
+    tencent_cloud_config = CosConfig(Region=tencent_cloud_bucket_region, SecretId=tencent_cloud_secret_id, SecretKey=tencent_cloud_secret_key)
+    tencent_cloud_client = CosS3Client(tencent_cloud_config)
 
 @app.get("/wechat/")
 def read_wechat(signature: Union[str, None] = None,
