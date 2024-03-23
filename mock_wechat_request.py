@@ -10,7 +10,7 @@ data = """<xml>
 </xml>"""
 headers = {"Content-Type": "application/xml"}
 r = requests.post(
-    "http://localhost:8000/wechat/?signature=7fc9f06bbfa1717fea29e20b021a528f2ad8e917&timestamp=1699931656&nonce=368012531&openid=o5swUt-rzSGqTAyKuwTnQQMUKMeQ",
+    "http://localhost:8000/?signature=7fc9f06bbfa1717fea29e20b021a528f2ad8e917&timestamp=1699931656&nonce=368012531&openid=o5swUt-rzSGqTAyKuwTnQQMUKMeQ",
     data=data.encode('utf-8'),
     headers=headers
 )

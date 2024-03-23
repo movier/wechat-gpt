@@ -73,7 +73,7 @@ if enable_tencent_cloud_tas:
     tencent_cloud_config = CosConfig(Region=tencent_cloud_bucket_region, SecretId=tencent_cloud_secret_id, SecretKey=tencent_cloud_secret_key)
     tencent_cloud_client = CosS3Client(tencent_cloud_config)
 
-@app.get("/wechat/")
+@app.get("/")
 def read_wechat(signature: Union[str, None] = None,
                 timestamp: Union[str, None] = None,
                 nonce: Union[str, None] = None,
@@ -85,7 +85,7 @@ def read_wechat(signature: Union[str, None] = None,
         # 处理异常情况或忽略
         return {"detail": "Not Found"}
     
-@app.post("/wechat/")
+@app.post("/")
 async def post_wechat(signature: Union[str, None] = None,
                 timestamp: Union[str, None] = None,
                 nonce: Union[str, None] = None,
