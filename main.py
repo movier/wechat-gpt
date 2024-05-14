@@ -142,7 +142,7 @@ def request_openai(messages):
         'Content-Type': 'application/json',
     }
     data = {
-        'model': 'gpt-4-turbo-preview',
+        'model': 'gpt-4o',
         'messages': messages,
     }
     response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=data)
