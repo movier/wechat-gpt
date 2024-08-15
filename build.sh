@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build -t movier/wechat-gpt .
+docker build --platform linux/amd64,linux/arm64 -t movier/wechat-gpt .
