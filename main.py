@@ -129,12 +129,32 @@ async def ainvoke_and_update(db, msg_model):
         wechat_client.message.send_text(msg_model.source, "很抱歉，我暂时无法与您讨论这个话题。如有需要，请联系系统管理员。")
     else:
         try:
-            wechat_client.message.send_text(msg_model.source, ai_message_content)
+            for i in split_text_into_fixed_lengths(ai_message_content, 700):
+                wechat_client.message.send_text(msg_model.source, i)
             msg_model.is_fulfilled = True
             crud.update_message(db, msg_model)
         except WeChatClientException as e:
             print(e)
             wechat_client.message.send_text(msg_model.source, "很抱歉，我在回复消息的时候遇到了点儿问题。如有需要，请联系系统管理员。")
+
+def split_text_into_fixed_lengths(text, max_length):
+    # 用于存储结果的列表
+    segments = []
+    # 当前切分的一段
+    current_segment = ""
+    
+    for char in text:
+        current_segment += char
+        if len(current_segment) >= max_length:
+            segments.append(current_segment)
+            current_segment = ""
+    
+    # 添加最后一段如果它不为空
+    if current_segment:
+        segments.append(current_segment)
+    
+    # 合并结果并返回
+    return segments
 
 def request_openai(messages):
     headers = {
