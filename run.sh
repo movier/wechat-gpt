@@ -1,7 +1,7 @@
 #!/bin/bash
 
 docker run -it --rm \
-  --name wechat-gpt \
+  --name wechatgpt-dev \
   -p 8000:8000 \
   -v $(pwd):/app \
   movier/wechat-gpt \

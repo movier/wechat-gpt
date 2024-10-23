@@ -175,6 +175,6 @@ def tencent_cloud_text_auditing_service(text):
     )
     result = response["JobsDetail"]["Result"]
     print("tencent_cloud_text_auditing_service", result)
-    if result == "0":
+    if result == "0" or result == "1":
         return True
     return False
