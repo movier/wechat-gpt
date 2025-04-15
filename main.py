@@ -162,7 +162,7 @@ def request_openai(messages):
         'Content-Type': 'application/json',
     }
     data = {
-        'model': 'gpt-4o',
+        'model': 'gpt-4.1',
         'messages': messages,
     }
     response = requests.post('https://openai.cyanrocks.com/v1/chat/completions', headers=headers, json=data)
