@@ -165,7 +165,7 @@ def request_openai(messages):
         'model': 'gpt-4.1',
         'messages': messages,
     }
-    response = requests.post('https://openai.cyanrocks.com/v1/chat/completions', headers=headers, json=data)
+    response = requests.post('https://proxy.yeebotech.cn/openai/v1/chat/completions', headers=headers, json=data)
     return response.json()
 
 def tencent_cloud_text_auditing_service(text):
